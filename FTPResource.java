@@ -2,15 +2,15 @@ package car.tp2;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.StreamingOutput;
+import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.net.ftp.*;
 
@@ -67,6 +67,11 @@ public class FTPResource {
 					link = base_url + "/file/" + path + "/" + file.getName();
 				out += file.getSize() + "<a href=\"" + link + "\">	" + file.getName() + "</a><br/>";
 			}
+			out += "<br/><br/><form method=\"post\" action=\"" + base_url + "/upload/\">"
+					+ "<label for=\"file\">File to upload:</label><input type=\"file\" name=\"file\" id=\"file\"/><br/>"
+					+  "<label for=\"fileName\">File name:</label><input type=\"text\" name=\"fileName\" id=\"fileName\"/><br/>"
+					+ "<input type=\"hidden\" name=\"path\" value=\""+ path + "\"/><br/>"
+					+ "<input type=\"submit\" value=\"Upload\"/></form>";
 		} catch (IOException e) {
 			out += ftp.getReplyString();
 			e.printStackTrace();
@@ -107,6 +112,27 @@ public class FTPResource {
 			e.printStackTrace();
 		}
 		return ("<h1>" + ftp.getReplyString() + "</h1>");
+	}
+	
+	@GET
+	@POST
+	@Path("upload/")
+	@Produces("text/html")
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	public String fileUpload(@FormParam("file") InputStream fileUploadStream,
+							@FormParam("Name") String fileName,
+							@FormParam("Path") String path)
+	{
+		try
+		{
+			if (ftp.storeUniqueFile(path + fileName, fileUploadStream))
+				return ("<h1>Upload complete</h1>" + ftp.getReplyString());
+			else
+				return ("<h1>Upload error</h1>" + ftp.getReplyString());
+		} catch (IOException e)	{
+			e.printStackTrace();
+			return ("<h1>Upload error</h1>" + ftp.getReplyString());
+		}
 	}
 	
 }
