@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -13,6 +12,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.net.ftp.*;
+import org.apache.cxf.jaxrs.ext.multipart.Multipart;
 
 @Path("/ftp")
 public class FTPResource {
@@ -67,7 +67,7 @@ public class FTPResource {
 					link = base_url + "/file/" + path + "/" + file.getName();
 				out += file.getSize() + "<a href=\"" + link + "\">	" + file.getName() + "</a><br/>";
 			}
-			out += "<br/><br/><form method=\"post\" action=\"" + base_url + "/upload/\">"
+			out += "<br/><br/><form method=\"post\" action=\"" + base_url + "/upload\" enctype=\"multipart/form-data\">"
 					+ "<label for=\"file\">File to upload:</label><input type=\"file\" name=\"file\" id=\"file\"/><br/>"
 					+  "<label for=\"fileName\">File name:</label><input type=\"text\" name=\"fileName\" id=\"fileName\"/><br/>"
 					+ "<input type=\"hidden\" name=\"path\" value=\""+ path + "\"/><br/>"
@@ -114,18 +114,18 @@ public class FTPResource {
 		return ("<h1>" + ftp.getReplyString() + "</h1>");
 	}
 	
-	@GET
 	@POST
-	@Path("upload/")
+	@Path("upload")
 	@Produces("text/html")
 	@Consumes(MediaType.MULTIPART_FORM_DATA)
-	public String fileUpload(@FormParam("file") InputStream fileUploadStream,
-							@FormParam("Name") String fileName,
-							@FormParam("Path") String path)
+	public String fileUpload(@Multipart("file") InputStream fileUploadStream,
+							@Multipart("fileName") String fileName,
+							@Multipart("path") String path)
 	{
 		try
 		{
-			if (ftp.storeUniqueFile(path + fileName, fileUploadStream))
+			ftp.changeWorkingDirectory(path);
+			if (ftp.storeFile(fileName, fileUploadStream))
 				return ("<h1>Upload complete</h1>" + ftp.getReplyString());
 			else
 				return ("<h1>Upload error</h1>" + ftp.getReplyString());
@@ -134,5 +134,4 @@ public class FTPResource {
 			return ("<h1>Upload error</h1>" + ftp.getReplyString());
 		}
 	}
-	
 }
